@@ -1,0 +1,646 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Koinonia Ride</title>
+<meta name="description" content="Koinonia Ride — proof-of-concept passenger transport app for Koinonia prayer meetings in Abuja.">
+<meta name="theme-color" content="#5b2a86">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#f6f4fa;--card:#ffffff;--ink:#1d1730;--muted:#6b6480;--line:#e4dfee;--brand:#5b2a86;--brand-ink:#ffffff;--brand-soft:#efe7f8;--gold:#b8861f;--gold-soft:#fbf1dc;--ok:#1f8a4c;--ok-soft:#e3f4ea;--warn:#a65f00;--warn-soft:#fff2dc;--bad:#c0392b;--bad-soft:#fde8e6;--shadow:0 1px 2px rgba(20,10,40,.06),0 6px 18px rgba(20,10,40,.05);--r:14px}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#121019;--card:#1c1926;--ink:#eeeaf6;--muted:#a59fb7;--line:#2f2a3d;--brand:#b18ae8;--brand-ink:#16101f;--brand-soft:#2a2140;--gold:#e0b45a;--gold-soft:#33290f;--ok:#5fcf8d;--ok-soft:#173022;--warn:#f0b14a;--warn-soft:#33270f;--bad:#ff7b6b;--bad-soft:#3a1c19;--shadow:none}}
+:root[data-theme="dark"]{--bg:#121019;--card:#1c1926;--ink:#eeeaf6;--muted:#a59fb7;--line:#2f2a3d;--brand:#b18ae8;--brand-ink:#16101f;--brand-soft:#2a2140;--gold:#e0b45a;--gold-soft:#33290f;--ok:#5fcf8d;--ok-soft:#173022;--warn:#f0b14a;--warn-soft:#33270f;--bad:#ff7b6b;--bad-soft:#3a1c19;--shadow:none}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 Inter,system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+header{background:var(--brand);color:var(--brand-ink);padding:14px 16px 0}
+.top{display:flex;align-items:center;gap:12px;max-width:1100px;margin:0 auto}
+.logo{width:38px;height:38px;border-radius:11px;background:var(--brand-ink);color:var(--brand);display:grid;place-items:center;font-weight:800;font-size:18px;flex:none}
+.brand h1{margin:0;font-size:18px;line-height:1.2}
+.brand small{opacity:.85;font-size:12px}
+.pill{margin-left:auto;font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;background:rgba(255,255,255,.18);padding:4px 9px;border-radius:99px;white-space:nowrap}
+nav{display:flex;gap:2px;overflow-x:auto;max-width:1100px;margin:10px auto 0;scrollbar-width:none}
+nav::-webkit-scrollbar{display:none}
+nav button{background:none;border:0;color:var(--brand-ink);opacity:.75;padding:10px 12px;font:600 13px Inter,sans-serif;border-bottom:3px solid transparent;white-space:nowrap;cursor:pointer}
+nav button.on{opacity:1;border-bottom-color:var(--gold)}
+main{max-width:1100px;margin:0 auto;padding:16px}
+.grid{display:grid;gap:14px}
+@media(min-width:820px){.g2{grid-template-columns:1fr 1fr}.g3{grid-template-columns:repeat(3,1fr)}.g21{grid-template-columns:2fr 1fr}}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:16px;box-shadow:var(--shadow);min-width:0}
+.card h2{margin:0 0 4px;font-size:16px}
+.card h3{margin:14px 0 6px;font-size:14px}
+.sub{color:var(--muted);font-size:13px;margin:0 0 12px}
+.stats{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+@media(min-width:620px){.stats{grid-template-columns:repeat(4,1fr)}}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px}
+.stat b{display:block;font-size:22px}
+.stat span{color:var(--muted);font-size:12px}
+label{display:block;font-size:12px;font-weight:600;color:var(--muted);margin:10px 0 4px}
+input,select,textarea{width:100%;padding:10px 11px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink);font:14px Inter,sans-serif}
+textarea{min-height:70px;resize:vertical}
+.row{display:grid;gap:0 10px;grid-template-columns:1fr 1fr}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;border:0;border-radius:10px;padding:10px 14px;font:600 14px Inter,sans-serif;cursor:pointer;background:var(--brand);color:var(--brand-ink)}
+.btn.ghost{background:var(--brand-soft);color:var(--brand)}
+.btn.gold{background:var(--gold);color:#fff}
+.btn.danger{background:var(--bad-soft);color:var(--bad)}
+.btn.sm{padding:6px 10px;font-size:12px;border-radius:8px}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btns{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.tag{display:inline-block;font-size:11px;font-weight:700;padding:2px 8px;border-radius:99px;background:var(--brand-soft);color:var(--brand);white-space:nowrap}
+.tag.ok{background:var(--ok-soft);color:var(--ok)}.tag.warn{background:var(--warn-soft);color:var(--warn)}.tag.bad{background:var(--bad-soft);color:var(--bad)}.tag.gold{background:var(--gold-soft);color:var(--gold)}
+.list{display:flex;flex-direction:column;gap:8px}
+.item{border:1px solid var(--line);border-radius:12px;padding:10px 12px;display:flex;gap:10px;align-items:flex-start;justify-content:space-between;flex-wrap:wrap}
+.item .meta{color:var(--muted);font-size:12.5px}
+.notice{border-radius:12px;padding:12px 14px;font-size:14px;margin-top:12px}
+.notice.ok{background:var(--ok-soft);color:var(--ok)}.notice.warn{background:var(--warn-soft);color:var(--warn)}.notice.info{background:var(--brand-soft);color:var(--brand)}.notice.bad{background:var(--bad-soft);color:var(--bad)}
+.seats{display:flex;flex-wrap:wrap;gap:4px;margin:8px 0}
+.seat{width:20px;height:20px;border-radius:5px;border:1.5px solid var(--brand);background:transparent}
+.seat.f{background:var(--brand)}
+.bar{height:10px;border-radius:99px;background:var(--line);overflow:hidden}
+.bar i{display:block;height:100%;background:var(--gold)}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{text-align:left;padding:8px 6px;border-bottom:1px solid var(--line);vertical-align:top}
+th{color:var(--muted);font-weight:600;font-size:12px}
+.tw{overflow-x:auto}
+#map{height:380px;border-radius:12px;border:1px solid var(--line);z-index:0}
+.dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;vertical-align:middle}
+#toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%) translateY(120px);background:var(--ink);color:var(--bg);padding:11px 16px;border-radius:12px;font-size:14px;transition:.25s;z-index:9999;max-width:90vw;opacity:0;visibility:hidden}
+#toast.show{transform:translateX(-50%) translateY(0);opacity:1;visibility:visible}
+.check{display:flex;gap:8px;align-items:flex-start;font-size:13px;color:var(--muted);margin-top:10px}
+.check input{width:auto;margin-top:3px}
+.foot{color:var(--muted);font-size:12px;text-align:center;padding:20px 16px 40px}
+.hint{font-size:12px;color:var(--muted);margin-top:6px}
+pre.report{white-space:pre-wrap;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:12px;font:12.5px/1.5 ui-monospace,Menlo,Consolas,monospace;max-height:340px;overflow:auto}
+</style>
+</head>
+<body>
+<header>
+  <div class="top">
+    <div class="logo">K</div>
+    <div class="brand"><h1>Koinonia Ride</h1><small>Prayer meeting transport · Abuja</small></div>
+    <span class="pill" id="sessPill">Pilot</span>
+  </div>
+  <nav id="tabs"></nav>
+</header>
+<main id="view"></main>
+<div class="foot">Proof of concept · data is stored only in this browser · <a href="#" onclick="App.go('settings');return false" style="color:inherit">Settings &amp; data</a></div>
+<div id="toast"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script>
+(function(){
+'use strict';
+/* ---------- helpers ---------- */
+const KEY='koinonia-ride-v1';
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const uid=p=>p+Date.now().toString(36).slice(-4)+Math.random().toString(36).slice(2,6);
+const naira=n=>'₦'+Math.round(Number(n)||0).toLocaleString('en-NG');
+const todayISO=()=>{const d=new Date();return new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,10)};
+const nowTime=()=>new Date().toLocaleTimeString('en-NG',{hour:'2-digit',minute:'2-digit'});
+const fmtDate=s=>new Date(s+'T12:00:00').toLocaleDateString('en-NG',{weekday:'short',day:'numeric',month:'short',year:'numeric'});
+function km(a,b){const R=6371,t=x=>x*Math.PI/180;const dLat=t(b.lat-a.lat),dLng=t(b.lng-a.lng);const h=Math.sin(dLat/2)**2+Math.cos(t(a.lat))*Math.cos(t(b.lat))*Math.sin(dLng/2)**2;return 2*R*Math.asin(Math.sqrt(h));}
+function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('show');clearTimeout(toast._t);toast._t=setTimeout(()=>t.classList.remove('show'),2800);}
+const val=id=>{const e=document.getElementById(id);return e?e.value.trim():''};
+
+/* ---------- seed data ---------- */
+function seed(){
+  const d=todayISO(), sid='s-'+d;
+  return {
+    v:1,
+    settings:{geofence:300,autoAllocate:true},
+    me:'m2',
+    origins:[
+      {id:'doa',short:'DOA',name:'Daughters of Abraham (DOA)',stage:'Pilot',addr:'Plot 680, opp. Setraco Head Office, Shehu Musa Yar’adua Way, Kado, Abuja',lat:9.0846,lng:7.4458},
+      {id:'chida',short:'Chida',name:'Chida Event Centre',stage:'Primary',addr:'Plot 224/226 P.O.W. Mafemi Crescent, Utako, Abuja 900108',lat:9.0687,lng:7.4405}
+    ],
+    areas:[
+      {id:'lifecamp',name:'Life Camp',lat:9.0779,lng:7.4131},{id:'gwarinpa',name:'Gwarinpa',lat:9.1081,lng:7.4083},
+      {id:'dawaki',name:'Dawaki',lat:9.1240,lng:7.4310},{id:'kubwa',name:'Kubwa',lat:9.1550,lng:7.3330},
+      {id:'galadimawa',name:'Galadimawa',lat:8.9940,lng:7.4200},{id:'lugbe',name:'Lugbe',lat:8.9790,lng:7.3790},
+      {id:'kuje',name:'Kuje',lat:8.8794,lng:7.2276},{id:'wuse',name:'Wuse',lat:9.0790,lng:7.4790},
+      {id:'central',name:'Central Area',lat:9.0560,lng:7.4900},{id:'garki',name:'Garki',lat:9.0350,lng:7.4890},
+      {id:'asokoro',name:'Asokoro',lat:9.0420,lng:7.5230},{id:'nyanya',name:'Nyanya / Karu',lat:9.0120,lng:7.5600},
+      {id:'apo',name:'Apo',lat:8.9970,lng:7.4980},{id:'lokogoma',name:'Lokogoma',lat:8.9890,lng:7.4510},
+      {id:'jabi',name:'Jabi',lat:9.0640,lng:7.4230},{id:'utako',name:'Utako',lat:9.0660,lng:7.4420},
+      {id:'katampe',name:'Katampe',lat:9.1100,lng:7.4640},{id:'maitama',name:'Maitama',lat:9.0880,lng:7.4960}
+    ],
+    routes:[
+      {id:'r1',name:'Kubwa Expressway',stops:['lifecamp','gwarinpa','dawaki','kubwa'],color:'#7c3aed'},
+      {id:'r2',name:'Airport Road – Kuje',stops:['galadimawa','lugbe','kuje'],color:'#d97706'},
+      {id:'r3',name:'City Centre – Asokoro',stops:['wuse','central','garki','asokoro'],color:'#059669'},
+      {id:'r4',name:'Keffi Road (Nyanya/Karu)',stops:['maitama','asokoro','nyanya'],color:'#dc2626'},
+      {id:'r5',name:'Southern Parkway',stops:['garki','apo','lokogoma'],color:'#2563eb'},
+      {id:'r6',name:'Inner loop (Keke)',stops:['utako','jabi','katampe'],color:'#db2777'}
+    ],
+    members:[
+      M('m1','KR-0001','Adaeze Okafor','F','0800 000 0001','gwarinpa','6th Avenue, Gwarinpa','Chidi Okafor','0800 100 0001','Choir'),
+      M('m2','KR-0002','Tunde Bakare','M','0800 000 0002','lugbe','Federal Housing, Lugbe','Bisi Bakare','0800 100 0002','Ushering'),
+      M('m3','KR-0003','Ngozi Eze','F','0800 000 0003','lifecamp','Life Camp Estate','Obinna Eze','0800 100 0003','Prayer'),
+      M('m4','KR-0004','Ibrahim Musa','M','0800 000 0004','kubwa','Phase 4, Kubwa','Aisha Musa','0800 100 0004','Technical'),
+      M('m5','KR-0005','Funmi Adeyemi','F','0800 000 0005','dawaki','Dawaki Extension','Kola Adeyemi','0800 100 0005','Welfare'),
+      M('m6','KR-0006','Emeka Nwosu','M','0800 000 0006','asokoro','Asokoro Extension','Ada Nwosu','0800 100 0006','Security'),
+      M('m7','KR-0007','Blessing Akpan','F','0800 000 0007','kuje','Kuje Town','Udeme Akpan','0800 100 0007','Children'),
+      M('m8','KR-0008','Samuel Danjuma','M','0800 000 0008','wuse','Wuse Zone 4','Ruth Danjuma','0800 100 0008','Media'),
+      M('m9','KR-0009','Grace Obi','F','0800 000 0009','jabi','Jabi Lake area','Paul Obi','0800 100 0009','Prayer'),
+      M('m10','KR-0010','Yusuf Bello','M','0800 000 0010','nyanya','Mararaba road, Nyanya','Hauwa Bello','0800 100 0010','Ushering')
+    ],
+    vehicles:[
+      {id:'v1',tag:'VH-001',type:'bus',make:'Toyota Hiace',plate:'ABJ 214 KD',color:'White',capacity:14,condition:'Good',driverName:'Sunday Ojo',driverPhone:'0800 200 0001',licence:'DL-ABJ-0001',routeId:'r1',ownerId:''},
+      {id:'v2',tag:'VH-002',type:'bus',make:'Toyota Hiace',plate:'GWA 552 AB',color:'Silver',capacity:14,condition:'Good',driverName:'Peter Agbo',driverPhone:'0800 200 0002',licence:'DL-ABJ-0002',routeId:'r3',ownerId:''},
+      {id:'v3',tag:'VH-003',type:'bus',make:'Toyota Coaster',plate:'KUJ 908 BC',color:'White',capacity:26,condition:'Fair',driverName:'Musa Idris',driverPhone:'0800 200 0003',licence:'DL-ABJ-0003',routeId:'r2',ownerId:''},
+      {id:'v4',tag:'VH-004',type:'keke',make:'Bajaj RE',plate:'ABJ 33 KK',color:'Green',capacity:3,condition:'Good',driverName:'Danladi Ahmed',driverPhone:'0800 200 0004',licence:'',routeId:'r6',ownerId:''},
+      {id:'v5',tag:'VH-005',type:'keke',make:'TVS King',plate:'ABJ 47 KK',color:'Yellow',capacity:3,condition:'Good',driverName:'Chinedu Ike',driverPhone:'0800 200 0005',licence:'',routeId:'r5',ownerId:''},
+      {id:'v6',tag:'VH-006',type:'personal',make:'Toyota Corolla',plate:'KWL 120 AA',color:'Black',capacity:4,condition:'Excellent',driverName:'Ngozi Eze',driverPhone:'0800 000 0003',licence:'',routeId:'r1',ownerId:'m3'},
+      {id:'v7',tag:'VH-007',type:'personal',make:'Honda CR-V',plate:'BWR 455 DE',color:'Grey',capacity:4,condition:'Good',driverName:'Funmi Adeyemi',driverPhone:'0800 000 0005',licence:'',routeId:'r1',ownerId:'m5'}
+    ],
+    session:{id:sid,date:d,originId:'doa',start:'18:00',end:'21:00',status:'open',checkins:{
+      m1:{originId:'doa',at:'20:41',method:'gps'},m4:{originId:'doa',at:'20:43',method:'gps'},
+      m6:{originId:'doa',at:'20:44',method:'manual'},m7:{originId:'doa',at:'20:45',method:'gps'},m9:{originId:'doa',at:'20:46',method:'gps'}}},
+    sessions:[],
+    assignments:[{sessionId:sid,vehicleId:'v1',routeId:'r1'},{sessionId:sid,vehicleId:'v2',routeId:'r3'},{sessionId:sid,vehicleId:'v3',routeId:'r2'},{sessionId:sid,vehicleId:'v4',routeId:'r6'}],
+    offers:[
+      {id:'o1',sessionId:sid,vehicleId:'v6',memberId:'m3',routeId:'r1',seats:2,depart:'After closing prayer',active:true},
+      {id:'o2',sessionId:sid,vehicleId:'v7',memberId:'m5',routeId:'r1',seats:3,depart:'21:15',active:true}
+    ],
+    bookings:[
+      {id:'b1',sessionId:sid,memberId:'m1',kind:'seat',vehicleId:'v1',offerId:'',routeId:'r1',dropArea:'gwarinpa',dropAddr:'6th Avenue, Gwarinpa',status:'reserved',auto:true,at:'20:41'},
+      {id:'b2',sessionId:sid,memberId:'m4',kind:'seat',vehicleId:'v1',offerId:'',routeId:'r1',dropArea:'kubwa',dropAddr:'Phase 4, Kubwa',status:'reserved',auto:true,at:'20:43'},
+      {id:'b3',sessionId:sid,memberId:'m6',kind:'seat',vehicleId:'v2',offerId:'',routeId:'r3',dropArea:'asokoro',dropAddr:'Asokoro Extension',status:'reserved',auto:false,at:'20:44'},
+      {id:'b4',sessionId:sid,memberId:'m7',kind:'seat',vehicleId:'v3',offerId:'',routeId:'r2',dropArea:'kuje',dropAddr:'Kuje Town',status:'reserved',auto:true,at:'20:45'},
+      {id:'b5',sessionId:sid,memberId:'m9',kind:'seat',vehicleId:'v4',offerId:'',routeId:'r6',dropArea:'jabi',dropAddr:'Jabi Lake area',status:'reserved',auto:true,at:'20:46'}
+    ],
+    reports:[],
+    gifts:[
+      {id:'g1',date:d,name:'Prayer Department',type:'Department',category:'Fuel',amount:150000,method:'Transfer',note:'Pilot month seed'},
+      {id:'g2',date:d,name:'Welfare Team',type:'Welfare',category:'Driver pay',amount:100000,method:'Transfer',note:''},
+      {id:'g3',date:d,name:'Adaeze Okafor',type:'Member',category:'General',amount:20000,method:'Cash',note:''},
+      {id:'g4',date:d,name:'Anonymous partner',type:'Partner',category:'Fuel',amount:50000,method:'Transfer',note:''}
+    ],
+    target:675000
+  };
+  function M(id,tag,name,gender,phone,homeArea,homeAddr,eName,ePhone,unit){return {id,tag,name,gender,phone,email:'',homeArea,homeAddr,landmark:'',eName,ePhone,unit,consent:true,joined:todayISO()}}
+}
+
+/* ---------- state ---------- */
+let S, mem=null;
+function load(){try{const r=localStorage.getItem(KEY);S=r?JSON.parse(r):seed();}catch(e){S=mem||seed();}}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){mem=S;}}
+load();
+
+const area=id=>S.areas.find(a=>a.id===id)||{name:'—',lat:0,lng:0};
+const route=id=>S.routes.find(r=>r.id===id);
+const veh=id=>S.vehicles.find(v=>v.id===id);
+const member=id=>S.members.find(m=>m.id===id);
+const origin=id=>S.origins.find(o=>o.id===id);
+const SID=()=>S.session.id;
+const HOLD=['reserved','approved','dropped'];
+const sessB=()=>S.bookings.filter(b=>b.sessionId===SID());
+const myBooking=mid=>sessB().find(b=>b.memberId===mid&&!['cancelled','declined'].includes(b.status));
+const usedSeats=vid=>sessB().filter(b=>b.vehicleId===vid&&b.kind==='seat'&&HOLD.includes(b.status)).length;
+const offerUsed=oid=>sessB().filter(b=>b.offerId===oid&&HOLD.includes(b.status)).length;
+const sessAssign=()=>S.assignments.filter(a=>a.sessionId===SID());
+const sessOffers=()=>S.offers.filter(o=>o.sessionId===SID()&&o.active);
+const typeLabel={bus:'Bus',keke:'Keke',personal:'Personal car'};
+const statusTag=s=>({reserved:'<span class="tag ok">Seat reserved</span>',approved:'<span class="tag ok">Approved</span>',requested:'<span class="tag warn">Awaiting driver</span>',waitlist:'<span class="tag warn">Waitlist</span>',dropped:'<span class="tag gold">Dropped off</span>',declined:'<span class="tag bad">Declined</span>',cancelled:'<span class="tag bad">Cancelled</span>',noshow:'<span class="tag bad">No-show</span>'}[s]||s);
+const areaOptions=sel=>S.areas.slice().sort((a,b)=>a.name.localeCompare(b.name)).map(a=>`<option value="${a.id}" ${a.id===sel?'selected':''}>${esc(a.name)}</option>`).join('');
+const memberOptions=sel=>S.members.map(m=>`<option value="${m.id}" ${m.id===sel?'selected':''}>${esc(m.name)} (${m.tag})</option>`).join('');
+const routeOptions=sel=>S.routes.map(r=>`<option value="${r.id}" ${r.id===sel?'selected':''}>${esc(r.name)}</option>`).join('');
+
+/* ---------- core logic: allocation ---------- */
+function allocate(mid,dropArea,dropAddr,auto){
+  if(S.session.status!=='open') return {ok:false,cls:'bad',msg:'This session is closed. Start a new session on the Today tab.'};
+  if(myBooking(mid)) return {ok:false,cls:'warn',msg:'Already has a booking for this session — cancel it first to re-allocate.'};
+  let note='', routes=S.routes.filter(r=>r.stops.includes(dropArea)), drop=dropArea;
+  if(!routes.length){
+    const a=area(dropArea);let best=null;
+    S.routes.forEach(r=>r.stops.forEach(s=>{const d=km(a,area(s));if(!best||d<best.d)best={r,d,s};}));
+    routes=[best.r]; drop=best.s;
+    note=` No route stops in ${a.name}, so drop-off is at the nearest stop: ${area(best.s).name} (${best.d.toFixed(1)} km away).`;
+  }
+  const rIds=routes.map(r=>r.id);
+  // 1) public vehicles assigned to a matching route, most free seats first; buses before kekes for long trips
+  const pub=sessAssign().filter(a=>rIds.includes(a.routeId)).map(a=>{const v=veh(a.vehicleId);return v&&{a,v,free:v.capacity-usedSeats(v.id)}}).filter(x=>x&&x.free>0)
+    .sort((x,y)=>(y.v.type==='bus')-(x.v.type==='bus')||y.free-x.free);
+  if(pub.length){
+    const p=pub[0];
+    S.bookings.push({id:uid('b'),sessionId:SID(),memberId:mid,kind:'seat',vehicleId:p.v.id,offerId:'',routeId:p.a.routeId,dropArea:drop,dropAddr,status:'reserved',auto:!!auto,at:nowTime()});
+    save();
+    return {ok:true,cls:'ok',msg:`Seat reserved on ${typeLabel[p.v.type]} ${p.v.plate} (${route(p.a.routeId).name}). Driver: ${p.v.driverName}, ${p.v.driverPhone}. Drop-off: ${area(drop).name}.`+note};
+  }
+  // 2) ride-share offers on a matching route with free seats
+  const off=sessOffers().filter(o=>rIds.includes(o.routeId)&&o.memberId!==mid).map(o=>({o,free:o.seats-offerUsed(o.id)})).filter(x=>x.free>0).sort((x,y)=>y.free-x.free);
+  if(off.length){
+    const o=off[0].o, v=veh(o.vehicleId);
+    S.bookings.push({id:uid('b'),sessionId:SID(),memberId:mid,kind:'pool',vehicleId:o.vehicleId,offerId:o.id,routeId:o.routeId,dropArea:drop,dropAddr,status:'requested',auto:!!auto,at:nowTime()});
+    save();
+    return {ok:true,cls:'info',msg:`No bus seats left on this corridor. Ride-share request sent to ${member(o.memberId).name} (${v.make}, ${v.plate}) — waiting for the driver to approve.`+note};
+  }
+  // 3) waitlist
+  S.bookings.push({id:uid('b'),sessionId:SID(),memberId:mid,kind:'seat',vehicleId:'',offerId:'',routeId:rIds[0],dropArea:drop,dropAddr,status:'waitlist',auto:!!auto,at:nowTime()});
+  save();
+  return {ok:true,cls:'warn',msg:`No seats or ride-share space on ${route(rIds[0]).name} yet. Added to the waitlist — the transport team can assign a vehicle to this route.`+note};
+}
+function checkin(mid,originId,method){
+  S.session.checkins[mid]={originId,at:nowTime(),method};save();
+  const m=member(mid);let res={ok:true,cls:'ok',msg:`${m.name} checked in at ${origin(originId).short}.`};
+  if(S.settings.autoAllocate&&!myBooking(mid)){
+    const r=allocate(mid,ui.tonightArea||m.homeArea,ui.tonightAddr||m.homeAddr,true);
+    res={ok:r.ok,cls:r.cls,msg:`Checked in at ${origin(originId).short} and auto-allocated. `+r.msg};
+  }
+  return res;
+}
+function promoteWaitlist(){
+  let n=0;sessB().filter(b=>b.status==='waitlist').forEach(b=>{b.status='cancelled';const r=allocate(b.memberId,b.dropArea,b.dropAddr,true);if(r.cls!=='warn')n++;else{/* re-queued */}});
+  // clean duplicate cancelled waitlist entries are harmless (kept for audit)
+  save();return n;
+}
+
+/* ---------- UI state & router ---------- */
+const ui={tab:'today',result:null,geo:null,tonightArea:'',tonightAddr:'',editMember:null,editVehicle:null,reportVeh:'',lastReport:null,memberQ:''};
+const TABS=[['today','Today'],['rides','Book & Share'],['members','Members'],['vehicles','Vehicles'],['routes','Routes & Map'],['security','Security'],['giving','Giving'],['settings','Settings']];
+let map=null;
+function go(t){ui.tab=t;render();window.scrollTo(0,0);}
+function render(){
+  $('#tabs').innerHTML=TABS.map(([k,l])=>`<button class="${ui.tab===k?'on':''}" onclick="App.go('${k}')">${l}</button>`).join('');
+  const o=origin(S.session.originId);
+  $('#sessPill').textContent=`${o?o.short:''} · ${S.session.status==='open'?'Session open':'Closed'}`;
+  if(map){map.remove();map=null;}
+  $('#view').innerHTML=V[ui.tab]();
+  if(ui.tab==='routes')drawMap();
+}
+
+/* ---------- views ---------- */
+const V={};
+V.today=()=>{
+  const me=member(S.me)||S.members[0]; if(!ui.tonightArea)ui.tonightArea=me.homeArea;
+  const s=S.session, o=origin(s.originId), b=myBooking(me.id), ci=s.checkins[me.id];
+  const sb=sessB(), seatsTotal=sessAssign().reduce((t,a)=>t+(veh(a.vehicleId)?.capacity||0),0);
+  const seatsUsed=sb.filter(x=>x.kind==='seat'&&HOLD.includes(x.status)).length;
+  const poolSeats=sessOffers().reduce((t,x)=>t+x.seats,0);
+  const pending=sb.filter(x=>x.status==='requested').length, wait=sb.filter(x=>x.status==='waitlist').length;
+  const noBook=Object.keys(s.checkins).filter(id=>!myBooking(id)).length;
+  return `
+  <div class="stats">
+    <div class="stat"><b>${Object.keys(s.checkins).length}</b><span>Checked in at ${esc(o.short)}</span></div>
+    <div class="stat"><b>${seatsUsed}/${seatsTotal}</b><span>Bus &amp; keke seats booked</span></div>
+    <div class="stat"><b>${poolSeats}</b><span>Ride-share seats offered</span></div>
+    <div class="stat"><b>${pending+wait}</b><span>${pending} awaiting driver · ${wait} waitlist</span></div>
+  </div>
+  <div class="grid g2" style="margin-top:14px">
+    <div class="card">
+      <h2>My ride tonight</h2>
+      <p class="sub">Acting as a member for this demo. In production each member signs in with their phone number.</p>
+      <label>Acting as</label>
+      <select onchange="App.setMe(this.value)">${memberOptions(me.id)}</select>
+      <div class="row">
+        <div><label>Going to (default: home)</label><select id="tArea" onchange="App.tonight()">${areaOptions(ui.tonightArea)}</select></div>
+        <div><label>Address / landmark</label><input id="tAddr" value="${esc(ui.tonightAddr||(ui.tonightArea===me.homeArea?me.homeAddr:''))}" onchange="App.tonight()" placeholder="e.g. by Gwarinpa 3rd Avenue junction"></div>
+      </div>
+      ${ui.tonightArea!==me.homeArea?`<div class="hint">Overriding the default destination (${esc(area(me.homeArea).name)}) for this session only.</div>`:''}
+      <h3>1 · Check in at the meeting point</h3>
+      ${ci?`<div class="notice ok">Checked in at ${esc(origin(ci.originId).short)} at ${esc(ci.at)} (${ci.method==='gps'?'location detected':ci.method==='sim'?'simulated location':'manual'}).</div>`:`
+      <div class="btns">
+        <button class="btn" onclick="App.detect()">📍 Detect my location</button>
+        ${S.origins.map(x=>`<button class="btn ghost" onclick="App.simulate('${x.id}')">Simulate: at ${esc(x.short)}</button>`).join('')}
+      </div>
+      <div class="hint">The phone's GPS is checked against a ${S.settings.geofence} m geofence around each meeting point. ${S.settings.autoAllocate?'Checking in automatically allocates a ride.':''} Use "Simulate" when demoing away from the venue.</div>`}
+      ${ui.geo?`<div class="notice ${ui.geo.cls}">${esc(ui.geo.msg)}</div>`:''}
+      <h3>2 · Ride allocation</h3>
+      ${b?bookingCard(b,true):`<button class="btn gold" onclick="App.autoMe()">⚡ Auto-allocate my ride</button>`}
+      ${ui.result?`<div class="notice ${ui.result.cls}">${esc(ui.result.msg)}</div>`:''}
+    </div>
+    <div class="card">
+      <h2>Session</h2>
+      <p class="sub">${fmtDate(s.date)} · ${esc(s.start)}–${esc(s.end)} · ${esc(o.name)}</p>
+      <div class="notice info" style="margin-top:0">${esc(o.addr)}</div>
+      <div class="row">
+        <div><label>Meeting point</label><select id="sOrigin">${S.origins.map(x=>`<option value="${x.id}" ${x.id===s.originId?'selected':''}>${esc(x.name)} — ${x.stage}</option>`).join('')}</select></div>
+        <div><label>Date</label><input id="sDate" type="date" value="${s.date}"></div>
+      </div>
+      <div class="btns">
+        ${s.status==='open'?`<button class="btn danger" onclick="App.closeSession()">Close session &amp; send report</button>`:''}
+        <button class="btn ghost" onclick="App.newSession()">Start new session</button>
+      </div>
+      <h3>Transport desk</h3>
+      <p class="sub">${noBook} checked-in member(s) still need a ride. ${wait} on waitlist.</p>
+      <div class="btns" style="margin-top:0">
+        <button class="btn" onclick="App.allocateAll()" ${noBook?'':'disabled'}>Allocate everyone checked in</button>
+        <button class="btn ghost" onclick="App.retryWait()" ${wait?'':'disabled'}>Retry waitlist</button>
+      </div>
+      <h3>Bookings this session</h3>
+      <div class="list">${sb.filter(x=>x.status!=='cancelled').map(x=>`<div class="item"><div><b>${esc(member(x.memberId)?.name)}</b> → ${esc(area(x.dropArea).name)}<div class="meta">${x.vehicleId?esc(typeLabel[veh(x.vehicleId).type]+' '+veh(x.vehicleId).plate):'No vehicle yet'} · ${esc(route(x.routeId)?.name)}${x.auto?' · auto':''}</div></div>${statusTag(x.status)}</div>`).join('')||'<div class="meta">No bookings yet.</div>'}</div>
+    </div>
+  </div>`;
+};
+function bookingCard(b,mine){
+  const v=b.vehicleId?veh(b.vehicleId):null;
+  return `<div class="item" style="background:var(--brand-soft)"><div>
+    ${statusTag(b.status)} <b style="margin-left:4px">${esc(route(b.routeId)?.name||'')}</b>
+    <div class="meta" style="margin-top:4px">${v?`${typeLabel[v.type]} · ${esc(v.make)} · <b>${esc(v.plate)}</b> · ${esc(v.color)}<br>Driver: ${esc(v.driverName)} · ${esc(v.driverPhone)}<br>`:''}Drop-off: ${esc(area(b.dropArea).name)}${b.dropAddr?' — '+esc(b.dropAddr):''}</div>
+  </div>${mine&&b.status!=='dropped'?`<button class="btn sm danger" onclick="App.cancel('${b.id}')">Cancel</button>`:''}</div>`;
+}
+function seatGrid(cap,used){let h='<div class="seats">';for(let i=0;i<cap;i++)h+=`<span class="seat ${i<used?'f':''}" title="Seat ${i+1}"></span>`;return h+'</div>';}
+
+V.rides=()=>{
+  const me=member(S.me)||S.members[0], b=myBooking(me.id);
+  const myCars=S.vehicles.filter(v=>v.type==='personal'&&v.ownerId===me.id);
+  const myOffers=sessOffers().filter(o=>o.memberId===me.id);
+  return `
+  <div class="card" style="margin-bottom:14px"><div class="row" style="align-items:end">
+    <div><label>Acting as</label><select onchange="App.setMe(this.value)">${memberOptions(me.id)}</select></div>
+    <div>${b?bookingCard(b,true):'<div class="meta">No ride booked yet for this session.</div>'}</div>
+  </div></div>
+  <div class="grid g2">
+    <div class="card">
+      <h2>Reserve a seat — buses &amp; kekes</h2>
+      <p class="sub">Vehicles assigned to a route for tonight. Pick one with free seats and choose your drop-off stop.</p>
+      <div class="list">
+      ${S.routes.map(r=>{const as=sessAssign().filter(a=>a.routeId===r.id);
+        return `<div class="item" style="display:block"><div><span class="dot" style="background:${r.color}"></span><b>${esc(r.name)}</b><div class="meta">${r.stops.map(s=>esc(area(s).name)).join(' → ')}</div></div>
+        ${as.length?as.map(a=>{const v=veh(a.vehicleId);const used=usedSeats(v.id),free=v.capacity-used;
+          return `<div style="border-top:1px dashed var(--line);margin-top:8px;padding-top:8px"><div class="meta"><b style="color:var(--ink)">${typeLabel[v.type]} ${esc(v.plate)}</b> · ${esc(v.make)} · ${esc(v.driverName)} · ${free} of ${v.capacity} free</div>${seatGrid(v.capacity,used)}
+          ${!b&&free>0&&S.session.status==='open'?`<div class="row" style="align-items:end"><div><select id="st-${v.id}">${r.stops.map(s=>`<option value="${s}" ${s===me.homeArea?'selected':''}>${esc(area(s).name)}</option>`).join('')}</select></div><div><button class="btn sm" onclick="App.reserve('${v.id}','${r.id}')">Reserve seat</button></div></div>`:''}</div>`;}).join(''):'<div class="meta" style="margin-top:6px">No vehicle assigned tonight.</div>'}
+        </div>`;}).join('')}
+      </div>
+    </div>
+    <div class="card">
+      <h2>Ride share — members with cars</h2>
+      <p class="sub">Car owners opt in per session, set how many people they'll carry (never above the car's limit), and approve each request.</p>
+      ${myCars.length?`<h3>Offer a ride tonight</h3>
+        ${myOffers.length?myOffers.map(o=>`<div class="notice ok">You're offering ${o.seats} seat(s) on ${esc(route(o.routeId).name)} · ${offerUsed(o.id)} filled. <button class="btn sm danger" style="margin-left:6px" onclick="App.optOut('${o.id}')">Opt out tonight</button></div>`).join(''):`
+        <div class="row"><div><label>Car</label><select id="ofCar">${myCars.map(v=>`<option value="${v.id}">${esc(v.make)} ${esc(v.plate)} (max ${v.capacity})</option>`).join('')}</select></div>
+        <div><label>Seats to give</label><select id="ofSeats">${Array.from({length:myCars[0].capacity},(_,i)=>`<option>${i+1}</option>`).join('')}</select></div></div>
+        <div class="row"><div><label>Route</label><select id="ofRoute">${routeOptions(myCars[0].routeId)}</select></div><div><label>Leaving</label><input id="ofDepart" placeholder="e.g. 21:15"></div></div>
+        <div class="btns"><button class="btn gold" onclick="App.optIn()">Opt in — offer ride</button></div>`}`:`<div class="notice info" style="margin-top:0">${esc(me.name)} has no personal car registered. Register one under Vehicles → Personal car to offer rides.</div>`}
+      <h3>Rides on offer tonight</h3>
+      <div class="list">${sessOffers().map(o=>{const v=veh(o.vehicleId),owner=member(o.memberId),used=offerUsed(o.id),reqs=sessB().filter(x=>x.offerId===o.id&&x.status!=='cancelled');
+        const isMine=o.memberId===me.id;
+        return `<div class="item" style="display:block"><div><b>${esc(owner.name)}</b> · ${esc(v.make)} ${esc(v.plate)} <span class="tag">${used}/${o.seats} seats</span><div class="meta"><span class="dot" style="background:${route(o.routeId).color}"></span>${esc(route(o.routeId).name)} · leaving ${esc(o.depart||'after meeting')}</div></div>
+        ${seatGrid(o.seats,used)}
+        ${reqs.length?`<div class="list" style="margin-top:6px">${reqs.map(x=>`<div class="item" style="padding:6px 8px"><div class="meta"><b style="color:var(--ink)">${esc(member(x.memberId).name)}</b> → ${esc(area(x.dropArea).name)}</div><div>${statusTag(x.status)} ${x.status==='requested'?`<button class="btn sm" ${used>=o.seats?'disabled':''} onclick="App.decide('${x.id}',true)">Approve</button> <button class="btn sm danger" onclick="App.decide('${x.id}',false)">Decline</button>`:''}</div></div>`).join('')}</div>`:''}
+        ${!isMine&&!b&&used<o.seats&&S.session.status==='open'?`<div class="row" style="align-items:end;margin-top:8px"><div><select id="pr-${o.id}">${route(o.routeId).stops.map(s=>`<option value="${s}" ${s===me.homeArea?'selected':''}>${esc(area(s).name)}</option>`).join('')}</select></div><div><button class="btn sm ghost" onclick="App.requestRide('${o.id}')">Request a seat</button></div></div>`:''}
+        <div class="hint">Approve/decline is shown to everyone in this demo; in production only the car owner sees it.</div>
+        </div>`;}).join('')||'<div class="meta">No car owners have opted in for this session yet.</div>'}</div>
+    </div>
+  </div>`;
+};
+
+V.members=()=>{
+  const e=ui.editMember?member(ui.editMember):null, q=ui.memberQ.toLowerCase();
+  const list=S.members.filter(m=>!q||(m.name+m.phone+m.tag+area(m.homeArea).name).toLowerCase().includes(q));
+  return `<div class="grid g21">
+  <div class="card"><h2>Registered members <span class="tag">${S.members.length}</span></h2>
+    <p class="sub">Each member gets a security tag (KR-####) used on manifests and trip reports.</p>
+    <input placeholder="Search name, phone, tag or area" value="${esc(ui.memberQ)}" oninput="App.searchMembers(this.value)">
+    <div class="tw" style="margin-top:10px"><table><thead><tr><th>Tag</th><th>Name</th><th>Phone</th><th>Default destination</th><th>Emergency contact</th><th></th></tr></thead><tbody>
+    ${list.map(m=>`<tr><td><span class="tag">${m.tag}</span></td><td><b>${esc(m.name)}</b><div class="meta">${esc(m.unit||'')}</div></td><td>${esc(m.phone)}</td><td>${esc(area(m.homeArea).name)}<div class="meta">${esc(m.homeAddr)}</div></td><td>${esc(m.eName)}<div class="meta">${esc(m.ePhone)}</div></td><td style="white-space:nowrap"><button class="btn sm ghost" onclick="App.editMember('${m.id}')">Edit</button> <button class="btn sm danger" onclick="App.delMember('${m.id}')">✕</button></td></tr>`).join('')}
+    </tbody></table></div></div>
+  <div class="card"><h2>${e?'Edit member':'Register a member'}</h2><p class="sub">Home address becomes the default drop-off; it can be changed per session.</p>
+    <label>Full name *</label><input id="mName" value="${esc(e?.name)}">
+    <div class="row"><div><label>Phone *</label><input id="mPhone" value="${esc(e?.phone)}" inputmode="tel"></div><div><label>Gender</label><select id="mGender"><option ${e?.gender==='F'?'selected':''} value="F">Female</option><option ${e?.gender==='M'?'selected':''} value="M">Male</option></select></div></div>
+    <label>Email</label><input id="mEmail" value="${esc(e?.email)}" type="email">
+    <div class="row"><div><label>Home area *</label><select id="mArea">${areaOptions(e?.homeArea||'gwarinpa')}</select></div><div><label>Unit / department</label><input id="mUnit" value="${esc(e?.unit)}"></div></div>
+    <label>Home address</label><input id="mAddr" value="${esc(e?.homeAddr)}">
+    <label>Nearest landmark</label><input id="mLand" value="${esc(e?.landmark)}">
+    <div class="row"><div><label>Emergency contact *</label><input id="mEName" value="${esc(e?.eName)}"></div><div><label>Emergency phone *</label><input id="mEPhone" value="${esc(e?.ePhone)}" inputmode="tel"></div></div>
+    <label class="check"><input type="checkbox" id="mConsent" ${e?.consent!==false?'checked':''}> I consent to Koinonia sharing these details with its security department for my safety (NDPA 2023).</label>
+    <div class="btns"><button class="btn" onclick="App.saveMember()">${e?'Save changes':'Register member'}</button>${e?`<button class="btn ghost" onclick="App.editMember(null)">Cancel</button>`:''}</div>
+  </div></div>`;
+};
+
+V.vehicles=()=>{
+  const e=ui.editVehicle?veh(ui.editVehicle):null, t=e?.type||ui.vType||'bus';
+  const group=k=>S.vehicles.filter(v=>v.type===k);
+  const cardV=v=>`<div class="item"><div><b>${esc(v.make)}</b> · ${esc(v.plate)} <span class="tag">${v.tag}</span> <span class="tag ${v.condition==='Needs repair'?'bad':v.condition==='Fair'?'warn':'ok'}">${esc(v.condition)}</span>
+    <div class="meta">${v.capacity} passenger seats · ${esc(v.color)} · ${v.type==='personal'?'Owner: '+esc(member(v.ownerId)?.name||'—'):'Driver: '+esc(v.driverName)+' · '+esc(v.driverPhone)}${v.licence?' · Lic. '+esc(v.licence):''}<br>Preferred route: ${esc(route(v.routeId)?.name||'—')}</div></div>
+    <div style="white-space:nowrap"><button class="btn sm ghost" onclick="App.editVehicle('${v.id}')">Edit</button> <button class="btn sm danger" onclick="App.delVehicle('${v.id}')">✕</button></div></div>`;
+  return `<div class="grid g21">
+  <div class="card"><h2>Fleet</h2><p class="sub">Hired buses and kekes are assigned to routes per session. Personal cars are offered by their owners.</p>
+    ${['bus','keke','personal'].map(k=>`<h3>${{bus:'Buses',keke:'Kekes',personal:'Personal cars'}[k]} <span class="tag">${group(k).length}</span></h3><div class="list">${group(k).map(cardV).join('')||'<div class="meta">None registered.</div>'}</div>`).join('')}
+  </div>
+  <div class="card"><h2>${e?'Edit vehicle':'Register a vehicle'}</h2><p class="sub">Capacity is passenger seats, excluding the driver.</p>
+    <label>Type</label><select id="vType" ${e?'disabled':''} onchange="App.vType(this.value)">${['bus','keke','personal'].map(k=>`<option value="${k}" ${k===t?'selected':''}>${typeLabel[k]}</option>`).join('')}</select>
+    ${t==='personal'?`<label>Owner (member) *</label><select id="vOwner">${memberOptions(e?.ownerId||S.me)}</select>`:''}
+    <div class="row"><div><label>Make / model *</label><input id="vMake" value="${esc(e?.make)}" placeholder="${t==='keke'?'Bajaj RE':t==='bus'?'Toyota Hiace':'Toyota Corolla'}"></div><div><label>Plate number *</label><input id="vPlate" value="${esc(e?.plate)}"></div></div>
+    <div class="row"><div><label>Passenger seats *</label><input id="vCap" type="number" min="1" max="${t==='keke'?4:t==='personal'?7:60}" value="${e?.capacity||(t==='keke'?3:t==='personal'?4:14)}"></div><div><label>Colour</label><input id="vColor" value="${esc(e?.color)}"></div></div>
+    <label>Condition</label><select id="vCond">${['Excellent','Good','Fair','Needs repair'].map(c=>`<option ${c===(e?.condition||'Good')?'selected':''}>${c}</option>`).join('')}</select>
+    ${t!=='personal'?`<div class="row"><div><label>Driver name *</label><input id="vDName" value="${esc(e?.driverName)}"></div><div><label>Driver phone *</label><input id="vDPhone" value="${esc(e?.driverPhone)}" inputmode="tel"></div></div><label>Driver's licence no.</label><input id="vLic" value="${esc(e?.licence)}">`:''}
+    <label>Preferred / given route</label><select id="vRoute">${routeOptions(e?.routeId||'r1')}</select>
+    <div class="btns"><button class="btn" onclick="App.saveVehicle()">${e?'Save changes':'Register vehicle'}</button>${e?`<button class="btn ghost" onclick="App.editVehicle(null)">Cancel</button>`:''}</div>
+  </div></div>`;
+};
+
+V.routes=()=>{
+  const free=S.vehicles.filter(v=>v.type!=='personal'&&!sessAssign().some(a=>a.vehicleId===v.id));
+  return `<div class="grid g21">
+  <div class="card"><h2>Route map</h2><p class="sub">Corridors follow major roads so most members can be dropped close to home. Lines are indicative; stop coordinates are approximate.</p><div id="map"></div></div>
+  <div class="card"><h2>Tonight's route plan</h2><p class="sub">Assign hired buses and kekes to corridors for this session. Members can then reserve seats.</p>
+  <div class="list">${S.routes.map(r=>{const as=sessAssign().filter(a=>a.routeId===r.id),demand=sessB().filter(b=>b.routeId===r.id&&b.status!=='cancelled').length;
+    return `<div class="item" style="display:block"><div><span class="dot" style="background:${r.color}"></span><b>${esc(r.name)}</b> <span class="tag">${demand} riders</span><div class="meta">${r.stops.map(s=>esc(area(s).name)).join(' → ')}</div></div>
+    ${as.map(a=>{const v=veh(a.vehicleId);return `<div class="meta" style="margin-top:6px">${typeLabel[v.type]} ${esc(v.plate)} · ${usedSeats(v.id)}/${v.capacity} <button class="btn sm danger" onclick="App.unassign('${v.id}')">Remove</button></div>`}).join('')}
+    ${free.length?`<div class="row" style="margin-top:8px;align-items:end"><div><select id="as-${r.id}">${free.map(v=>`<option value="${v.id}">${typeLabel[v.type]} ${esc(v.plate)} (${v.capacity})${v.routeId===r.id?' ★':''}</option>`).join('')}</select></div><div><button class="btn sm" onclick="App.assign('${r.id}')">Assign</button></div></div>`:''}</div>`}).join('')}</div>
+  <div class="hint">★ = vehicle's preferred route.</div></div></div>`;
+};
+function drawMap(){
+  if(typeof L==='undefined'){$('#map').innerHTML='<div class="notice warn">Map library could not load (offline?). Route planning still works.</div>';return;}
+  map=L.map('map',{scrollWheelZoom:false}).setView([9.04,7.43],11);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:18,attribution:'© OpenStreetMap'}).addTo(map);
+  const o=origin(S.session.originId);
+  S.origins.forEach(x=>{L.circle([x.lat,x.lng],{radius:S.settings.geofence,color:'#b8861f',fillOpacity:.15}).addTo(map);L.marker([x.lat,x.lng]).addTo(map).bindPopup(`<b>${esc(x.name)}</b><br>${esc(x.stage)} · geofence ${S.settings.geofence} m`);});
+  S.routes.forEach(r=>{const pts=[[o.lat,o.lng],...r.stops.map(s=>[area(s).lat,area(s).lng])];L.polyline(pts,{color:r.color,weight:4,opacity:.8}).addTo(map).bindPopup(esc(r.name));
+    r.stops.forEach(s=>L.circleMarker([area(s).lat,area(s).lng],{radius:6,color:r.color,fillColor:'#fff',fillOpacity:1,weight:3}).addTo(map).bindTooltip(esc(area(s).name)));});
+  setTimeout(()=>map&&map.invalidateSize(),50);
+}
+
+V.security=()=>{
+  const vids=[...new Set([...sessAssign().map(a=>a.vehicleId),...sessOffers().map(o=>o.vehicleId),...sessB().filter(b=>b.vehicleId).map(b=>b.vehicleId)])];
+  if(!ui.reportVeh&&vids.length)ui.reportVeh=vids[0];
+  const rv=veh(ui.reportVeh), pax=rv?sessB().filter(b=>b.vehicleId===rv.id&&HOLD.includes(b.status)):[];
+  const reps=S.reports.filter(r=>r.sessionId===SID());
+  return `<div class="grid g2">
+  <div class="card"><h2>Security brief</h2><p class="sub">Who is travelling, on which vehicle, to where — with emergency contacts. Share with the Koinonia security department before vehicles depart.</p>
+    <div class="stats" style="grid-template-columns:repeat(3,1fr)"><div class="stat"><b>${S.members.length}</b><span>Registered</span></div><div class="stat"><b>${Object.keys(S.session.checkins).length}</b><span>Checked in</span></div><div class="stat"><b>${vids.length}</b><span>Vehicles out</span></div></div>
+    <div class="btns"><button class="btn" onclick="App.share(App.briefText())">Share via WhatsApp</button><button class="btn ghost" onclick="App.printText('Security brief',App.briefText())">Print</button></div>
+    <pre class="report" style="margin-top:12px">${esc(briefText())}</pre>
+  </div>
+  <div class="card"><h2>End-of-trip report</h2><p class="sub">The driver or route marshal confirms each drop-off and logs any incident once the route is complete.</p>
+    ${vids.length?`<label>Vehicle</label><select onchange="App.pickReportVeh(this.value)">${vids.map(id=>{const v=veh(id);return `<option value="${id}" ${id===ui.reportVeh?'selected':''}>${typeLabel[v.type]} ${esc(v.plate)} — ${esc(v.driverName)}</option>`}).join('')}</select>
+    <h3>Passengers</h3>
+    ${pax.length?`<div class="list">${pax.map(b=>`<label class="item" style="cursor:pointer;margin:0"><span><b style="color:var(--ink)">${esc(member(b.memberId).name)}</b> <span class="meta">→ ${esc(area(b.dropArea).name)}</span></span><span><select id="dp-${b.id}" style="width:auto;padding:5px 8px"><option value="dropped" ${b.status==='dropped'?'selected':''}>Dropped safely</option><option value="noshow">Did not board</option><option value="issue">Issue — see notes</option></select></span></label>`).join('')}</div>`:'<div class="meta">No confirmed passengers on this vehicle.</div>'}
+    <div class="row"><div><label>Route completed at</label><input id="rpTime" type="time" value="${new Date().toTimeString().slice(0,5)}"></div><div><label>Incident level</label><select id="rpLevel"><option>None</option><option>Minor</option><option>Serious</option></select></div></div>
+    <label>Incidents / notes</label><textarea id="rpNotes" placeholder="Breakdowns, delays, checkpoints, safety concerns…"></textarea>
+    <div class="btns"><button class="btn gold" onclick="App.submitReport()">Submit trip report</button></div>`:'<div class="meta">No vehicles are out this session.</div>'}
+    ${ui.lastReport?`<div class="notice ok">Report saved. Share it with the security and transport leads:</div><pre class="report">${esc(ui.lastReport)}</pre><div class="btns"><button class="btn" onclick="App.share(App.lastReport())">Share via WhatsApp</button><button class="btn ghost" onclick="App.printText('Trip report',App.lastReport())">Print</button></div>`:''}
+    <h3>Reports this session <span class="tag">${reps.length}/${vids.length}</span></h3>
+    <div class="list">${reps.map(r=>`<div class="item"><div><b>${esc(veh(r.vehicleId)?.plate)}</b> · ${esc(r.time)}<div class="meta">${r.dropped} dropped · ${r.noshow} no-show · ${r.issues} issue(s)</div></div><span class="tag ${r.level==='None'?'ok':r.level==='Minor'?'warn':'bad'}">${esc(r.level)}</span></div>`).join('')||'<div class="meta">None yet.</div>'}</div>
+  </div></div>`;
+};
+function manifest(){
+  const byV={};sessB().filter(b=>b.vehicleId&&HOLD.concat(['requested']).includes(b.status)).forEach(b=>(byV[b.vehicleId]=byV[b.vehicleId]||[]).push(b));
+  return Object.entries(byV).map(([vid,bs])=>{const v=veh(vid);return `${typeLabel[v.type].toUpperCase()} ${v.plate} (${v.make}, ${v.color}) — ${v.driverName} ${v.driverPhone}\n`+bs.map((b,i)=>{const m=member(b.memberId);return `  ${i+1}. ${m.name} [${m.tag}] → ${area(b.dropArea).name}${b.dropAddr?' ('+b.dropAddr+')':''}${b.status==='requested'?' [pending]':''}\n     Emergency: ${m.eName} ${m.ePhone}`}).join('\n')}).join('\n\n');
+}
+function briefText(){
+  const s=S.session,o=origin(s.originId),wait=sessB().filter(b=>b.status==='waitlist');
+  return `KOINONIA RIDE — SECURITY BRIEF\n${fmtDate(s.date)} · ${o.name}\nDeparture window: after ${s.end}\nChecked in: ${Object.keys(s.checkins).length} · Registered: ${S.members.length}\n\n${manifest()||'No allocated passengers yet.'}${wait.length?'\n\nWAITLIST: '+wait.map(b=>member(b.memberId).name+' → '+area(b.dropArea).name).join('; '):''}`;
+}
+
+V.giving=()=>{
+  const mo=todayISO().slice(0,7), g=S.gifts.filter(x=>x.date.slice(0,7)===mo), raised=g.reduce((t,x)=>t+Number(x.amount),0), pct=Math.min(100,Math.round(raised/S.target*100));
+  const sumBy=k=>g.reduce((o,x)=>(o[x[k]]=(o[x[k]]||0)+Number(x.amount),o),{});
+  const cat=sumBy('category'),typ=sumBy('type');
+  return `<div class="grid g21">
+  <div class="card"><h2>Partnerships &amp; welfare giving</h2><p class="sub">Contributions toward fuel, driver pay and upkeep keep the service free for members and ready to expand.</p>
+    <div class="stats" style="grid-template-columns:repeat(2,1fr)"><div class="stat"><b>${naira(raised)}</b><span>Raised this month</span></div><div class="stat"><b>${naira(Math.max(0,S.target-raised))}</b><span>Still needed (target ${naira(S.target)})</span></div></div>
+    <div class="bar" style="margin:12px 0 4px"><i style="width:${pct}%"></i></div><div class="meta">${pct}% of the monthly running cost covered</div>
+    <div class="grid g2" style="margin-top:12px"><div><h3>By purpose</h3>${Object.entries(cat).map(([k,v])=>`<div class="item" style="margin-bottom:6px"><span>${esc(k)}</span><b>${naira(v)}</b></div>`).join('')||'<div class="meta">—</div>'}</div>
+    <div><h3>By contributor</h3>${Object.entries(typ).map(([k,v])=>`<div class="item" style="margin-bottom:6px"><span>${esc(k)}</span><b>${naira(v)}</b></div>`).join('')||'<div class="meta">—</div>'}</div></div>
+    <h3>Ledger</h3><div class="tw"><table><thead><tr><th>Date</th><th>From</th><th>Purpose</th><th>Method</th><th style="text-align:right">Amount</th><th></th></tr></thead><tbody>
+    ${S.gifts.slice().reverse().map(x=>`<tr><td>${esc(x.date)}</td><td>${esc(x.name)}<div class="meta">${esc(x.type)}</div></td><td>${esc(x.category)}</td><td>${esc(x.method)}</td><td style="text-align:right"><b>${naira(x.amount)}</b></td><td><button class="btn sm danger" onclick="App.delGift('${x.id}')">✕</button></td></tr>`).join('')}
+    </tbody></table></div></div>
+  <div class="card"><h2>Record a contribution</h2><p class="sub">The pilot records pledges and transfers. Online card/transfer collection (e.g. Paystack) comes in the build phase.</p>
+    <label>Name *</label><input id="gName" placeholder="Member, department or partner">
+    <div class="row"><div><label>Contributor type</label><select id="gType"><option>Member</option><option>Department</option><option>Welfare</option><option>Partner</option></select></div><div><label>Purpose</label><select id="gCat"><option>Fuel</option><option>Driver pay</option><option>Maintenance</option><option>General</option></select></div></div>
+    <div class="row"><div><label>Amount (₦) *</label><input id="gAmt" type="number" min="1" inputmode="numeric"></div><div><label>Method</label><select id="gMethod"><option>Transfer</option><option>Cash</option><option>Pledge</option></select></div></div>
+    <label>Note</label><input id="gNote">
+    <div class="btns"><button class="btn gold" onclick="App.addGift()">Record</button></div>
+    <h3>Monthly running-cost target</h3><div class="row" style="align-items:end"><div><input id="gTarget" type="number" value="${S.target}"></div><div><button class="btn sm ghost" onclick="App.setTarget()">Update target</button></div></div>
+  </div></div>`;
+};
+
+V.settings=()=>`<div class="grid g2">
+  <div class="card"><h2>Meeting points &amp; geofence</h2><p class="sub">Coordinates are approximate — stand at the venue gate, tap "Use my location" and save, so check-in works accurately.</p>
+  ${S.origins.map(o=>`<h3>${esc(o.name)} <span class="tag">${o.stage}</span></h3><div class="meta">${esc(o.addr)}</div><div class="row"><div><label>Latitude</label><input id="lat-${o.id}" value="${o.lat}"></div><div><label>Longitude</label><input id="lng-${o.id}" value="${o.lng}"></div></div><div class="btns"><button class="btn sm ghost" onclick="App.hereFor('${o.id}')">Use my location</button></div>`).join('')}
+  <div class="row"><div><label>Geofence radius (m)</label><input id="geoR" type="number" value="${S.settings.geofence}"></div><div><label>Auto-allocate on check-in</label><select id="autoA"><option value="1" ${S.settings.autoAllocate?'selected':''}>On</option><option value="0" ${!S.settings.autoAllocate?'selected':''}>Off</option></select></div></div>
+  <div class="btns"><button class="btn" onclick="App.saveSettings()">Save settings</button></div></div>
+  <div class="card"><h2>Data</h2><p class="sub">This proof of concept keeps everything in this browser (no server). Export to back up or move data between devices.</p>
+  <div class="btns"><button class="btn ghost" onclick="App.exportData()">Export JSON</button><label class="btn ghost" style="margin:0;color:var(--brand);font-size:14px">Import JSON<input type="file" accept=".json" style="display:none" onchange="App.importData(this.files[0])"></label></div>
+  <div class="btns"><button class="btn danger" onclick="App.reset(true)">Reset to demo data</button><button class="btn danger" onclick="App.reset(false)">Start empty (keep areas &amp; routes)</button></div>
+  <h3>About</h3><p class="meta">Koinonia Ride POC · pilot at Daughters of Abraham, Kado → Chida Event Centre, Utako → Koinonia Abuja → Koinonia Global. Allocation is rule-based (geofence + destination-to-corridor matching + seat availability); route optimisation and demand prediction are planned for the full build.</p></div>
+</div>`;
+
+/* ---------- actions ---------- */
+const App={go,
+  setMe(id){S.me=id;const m=member(id);ui.tonightArea=m.homeArea;ui.tonightAddr='';ui.result=null;ui.geo=null;save();render();},
+  tonight(){ui.tonightArea=val('tArea');ui.tonightAddr=val('tAddr');render();},
+  detect(){
+    if(!navigator.geolocation){ui.geo={cls:'warn',msg:'Location is not available on this device. Use Simulate or ask the transport desk to check you in.'};return render();}
+    ui.geo={cls:'info',msg:'Getting your location…'};render();
+    navigator.geolocation.getCurrentPosition(p=>{
+      const here={lat:p.coords.latitude,lng:p.coords.longitude};
+      const n=S.origins.map(o=>({o,d:km(here,o)*1000})).sort((a,b)=>a.d-b.d)[0];
+      if(n.d<=S.settings.geofence){ui.result=checkin(S.me,n.o.id,'gps');ui.geo=null;}
+      else ui.geo={cls:'warn',msg:`You are ${(n.d/1000).toFixed(1)} km from ${n.o.short} — outside the ${S.settings.geofence} m check-in zone. Use Simulate for the demo.`};
+      render();
+    },err=>{ui.geo={cls:'warn',msg:'Could not read your location ('+err.message+'). Allow location access or use Simulate.'};render();},{enableHighAccuracy:true,timeout:12000,maximumAge:30000});
+  },
+  simulate(oid){ui.geo=null;ui.tonightAddr=val('tAddr');ui.result=checkin(S.me,oid,'sim');render();},
+  autoMe(){const m=member(S.me);ui.result=allocate(S.me,ui.tonightArea||m.homeArea,val('tAddr')||m.homeAddr,true);render();},
+  allocateAll(){let n=0;Object.keys(S.session.checkins).forEach(id=>{if(!myBooking(id)){const m=member(id);if(m){allocate(id,m.homeArea,m.homeAddr,true);n++;}}});toast(`Allocated ${n} member(s).`);render();},
+  retryWait(){const n=promoteWaitlist();toast(n?`${n} waitlisted member(s) placed.`:'Still no free seats on those routes.');render();},
+  cancel(id){const b=S.bookings.find(x=>x.id===id);if(b&&confirm('Cancel this booking?')){b.status='cancelled';ui.result=null;save();render();}},
+  reserve(vid,rid){
+    if(myBooking(S.me))return toast('You already have a booking.');
+    const v=veh(vid);if(usedSeats(vid)>=v.capacity)return toast('That vehicle is full.');
+    const drop=val('st-'+vid);const m=member(S.me);
+    S.bookings.push({id:uid('b'),sessionId:SID(),memberId:S.me,kind:'seat',vehicleId:vid,offerId:'',routeId:rid,dropArea:drop,dropAddr:drop===m.homeArea?m.homeAddr:'',status:'reserved',auto:false,at:nowTime()});
+    save();toast('Seat reserved.');render();},
+  optIn(){
+    const v=veh(val('ofCar')),seats=Math.min(Number(val('ofSeats')),v.capacity);
+    S.offers.push({id:uid('o'),sessionId:SID(),vehicleId:v.id,memberId:S.me,routeId:val('ofRoute'),seats,depart:val('ofDepart'),active:true});
+    save();toast(`You're offering ${seats} seat(s) tonight.`);render();},
+  optOut(oid){const o=S.offers.find(x=>x.id===oid);if(!confirm('Opt out for this session? Pending and approved riders will be moved back to the queue.'))return;
+    o.active=false;sessB().filter(b=>b.offerId===oid&&['requested','approved'].includes(b.status)).forEach(b=>{b.status='cancelled';allocate(b.memberId,b.dropArea,b.dropAddr,true);});save();render();},
+  requestRide(oid){
+    if(myBooking(S.me))return toast('You already have a booking.');
+    const o=S.offers.find(x=>x.id===oid),m=member(S.me),drop=val('pr-'+oid);
+    S.bookings.push({id:uid('b'),sessionId:SID(),memberId:S.me,kind:'pool',vehicleId:o.vehicleId,offerId:oid,routeId:o.routeId,dropArea:drop,dropAddr:drop===m.homeArea?m.homeAddr:'',status:'requested',auto:false,at:nowTime()});
+    save();toast('Request sent to the driver.');render();},
+  decide(bid,yes){
+    const b=S.bookings.find(x=>x.id===bid),o=S.offers.find(x=>x.id===b.offerId);
+    if(yes){if(offerUsed(o.id)>=o.seats)return toast('No seats left in this car.');b.status='approved';toast('Approved.');}
+    else{b.status='declined';const r=allocate(b.memberId,b.dropArea,b.dropAddr,true);toast('Declined — rider re-queued: '+(r.cls==='warn'?'waitlist':'re-allocated'));}
+    save();render();},
+  searchMembers(q){ui.memberQ=q;const c=document.activeElement&&document.activeElement.selectionStart;render();const i=document.querySelector('#view input');if(i){i.focus();try{i.setSelectionRange(c,c)}catch(e){}}},
+  editMember(id){ui.editMember=id;render();},
+  saveMember(){
+    const d={name:val('mName'),phone:val('mPhone'),gender:val('mGender'),email:val('mEmail'),homeArea:val('mArea'),unit:val('mUnit'),homeAddr:val('mAddr'),landmark:val('mLand'),eName:val('mEName'),ePhone:val('mEPhone'),consent:document.getElementById('mConsent').checked};
+    if(!d.name||!d.phone||!d.eName||!d.ePhone)return toast('Name, phone and emergency contact are required.');
+    if(!d.consent)return toast('Consent is needed to share details with security.');
+    const dup=S.members.find(m=>m.phone.replace(/\D/g,'')===d.phone.replace(/\D/g,'')&&m.id!==ui.editMember);if(dup)return toast('That phone number is already registered to '+dup.name+'.');
+    if(ui.editMember){Object.assign(member(ui.editMember),d);toast('Member updated.');}
+    else{const n=S.members.reduce((mx,m)=>Math.max(mx,parseInt(m.tag.slice(3))||0),0)+1;S.members.push({id:uid('m'),tag:'KR-'+String(n).padStart(4,'0'),joined:todayISO(),...d});toast('Registered — tag KR-'+String(n).padStart(4,'0'));}
+    ui.editMember=null;save();render();},
+  delMember(id){if(!confirm('Remove this member?'))return;S.members=S.members.filter(m=>m.id!==id);if(S.me===id)S.me=S.members[0]?.id;save();render();},
+  vType(t){ui.vType=t;render();},
+  editVehicle(id){ui.editVehicle=id;render();},
+  saveVehicle(){
+    const t=ui.editVehicle?veh(ui.editVehicle).type:val('vType');
+    const max=t==='keke'?4:t==='personal'?7:60, cap=Number(val('vCap'));
+    const d={make:val('vMake'),plate:val('vPlate').toUpperCase(),capacity:cap,color:val('vColor'),condition:val('vCond'),routeId:val('vRoute')};
+    if(t==='personal'){const m=member(val('vOwner'));Object.assign(d,{ownerId:m.id,driverName:m.name,driverPhone:m.phone,licence:''});}
+    else Object.assign(d,{driverName:val('vDName'),driverPhone:val('vDPhone'),licence:val('vLic'),ownerId:''});
+    if(!d.make||!d.plate||!d.driverName||!d.driverPhone)return toast('Please fill the required fields.');
+    if(!(cap>=1&&cap<=max))return toast(`Seats for a ${typeLabel[t].toLowerCase()} must be 1–${max}.`);
+    if(ui.editVehicle){const v=veh(ui.editVehicle);if(cap<usedSeats(v.id))return toast('More passengers are booked than that capacity.');Object.assign(v,d);toast('Vehicle updated.');}
+    else{const n=S.vehicles.reduce((mx,v)=>Math.max(mx,parseInt(v.tag.slice(3))||0),0)+1;S.vehicles.push({id:uid('v'),tag:'VH-'+String(n).padStart(3,'0'),type:t,...d});toast('Vehicle registered.');}
+    ui.editVehicle=null;save();render();},
+  delVehicle(id){if(!confirm('Remove this vehicle?'))return;S.vehicles=S.vehicles.filter(v=>v.id!==id);S.assignments=S.assignments.filter(a=>a.vehicleId!==id);save();render();},
+  assign(rid){const vid=val('as-'+rid);S.assignments.push({sessionId:SID(),vehicleId:vid,routeId:rid});save();const w=sessB().filter(b=>b.status==='waitlist'&&b.routeId===rid).length;toast('Assigned.'+(w?` ${w} waitlisted rider(s) — use "Retry waitlist" on Today.`:''));render();},
+  unassign(vid){if(usedSeats(vid)&&!confirm('Riders are booked on this vehicle. They will be moved to the waitlist. Continue?'))return;
+    S.assignments=S.assignments.filter(a=>!(a.sessionId===SID()&&a.vehicleId===vid));sessB().filter(b=>b.vehicleId===vid&&b.kind==='seat'&&b.status==='reserved').forEach(b=>{b.status='waitlist';b.vehicleId='';});save();render();},
+  pickReportVeh(id){ui.reportVeh=id;ui.lastReport=null;render();},
+  submitReport(){
+    const v=veh(ui.reportVeh),pax=sessB().filter(b=>b.vehicleId===v.id&&HOLD.includes(b.status));let dropped=0,noshow=0,issues=0;const lines=[];
+    pax.forEach(b=>{const s=val('dp-'+b.id),m=member(b.memberId);if(s==='dropped'){b.status='dropped';dropped++;}else if(s==='noshow'){b.status='noshow';noshow++;}else{issues++;}
+      lines.push(`  ${s==='dropped'?'✔':s==='noshow'?'✖':'⚠'} ${m.name} [${m.tag}] → ${area(b.dropArea).name}${s==='noshow'?' (did not board)':s==='issue'?' (ISSUE)':''}`);});
+    const level=val('rpLevel'),notes=val('rpNotes'),time=val('rpTime');
+    const text=`KOINONIA RIDE — END-OF-TRIP REPORT\n${fmtDate(S.session.date)} · from ${origin(S.session.originId).name}\nVehicle: ${typeLabel[v.type]} ${v.plate} (${v.make}) · ${v.driverName} ${v.driverPhone}\nRoute: ${route(pax[0]?.routeId||v.routeId)?.name||'—'} · completed ${time}\n\nPassengers (${pax.length}): ${dropped} dropped safely · ${noshow} did not board · ${issues} issue(s)\n${lines.join('\n')||'  (none)'}\n\nIncident level: ${level.toUpperCase()}\nNotes: ${notes||'None'}`;
+    S.reports.push({id:uid('r'),sessionId:SID(),vehicleId:v.id,time,level,notes,dropped,noshow,issues,text});
+    ui.lastReport=text;save();render();toast(level==='Serious'?'Serious incident logged — notify security lead now.':'Trip report saved.');},
+  lastReport:()=>ui.lastReport,
+  briefText,
+  share(text){window.open('https://wa.me/?text='+encodeURIComponent(text),'_blank');},
+  printText(title,text){const w=window.open('','_blank');if(!w)return toast('Allow pop-ups to print.');w.document.write(`<title>${esc(title)}</title><pre style="font:13px/1.5 ui-monospace,Menlo,monospace;white-space:pre-wrap">${esc(text)}</pre>`);w.document.close();w.focus();w.print();},
+  closeSession(){
+    const vids=[...new Set(sessB().filter(b=>b.vehicleId&&HOLD.includes(b.status)).map(b=>b.vehicleId))],done=S.reports.filter(r=>r.sessionId===SID()).map(r=>r.vehicleId);
+    const missing=vids.filter(v=>!done.includes(v));
+    if(missing.length&&!confirm(`${missing.length} vehicle(s) have not submitted a trip report (${missing.map(id=>veh(id).plate).join(', ')}). Close anyway?`))return;
+    const reps=S.reports.filter(r=>r.sessionId===SID()),sb=sessB();
+    const text=`KOINONIA RIDE — SESSION SUMMARY\n${fmtDate(S.session.date)} · ${origin(S.session.originId).name}\n\nChecked in: ${Object.keys(S.session.checkins).length}\nRides booked: ${sb.filter(b=>HOLD.includes(b.status)||b.status==='noshow').length} · dropped safely: ${sb.filter(b=>b.status==='dropped').length}\nStill on waitlist: ${sb.filter(b=>b.status==='waitlist').length}\nTrip reports: ${reps.length}/${vids.length}${missing.length?' — MISSING: '+missing.map(id=>veh(id).plate).join(', '):''}\nIncidents: ${reps.filter(r=>r.level!=='None').map(r=>veh(r.vehicleId).plate+' '+r.level+': '+(r.notes||'')).join('; ')||'None reported'}`;
+    S.session.status='closed';S.session.summary=text;save();ui.lastReport=text;ui.tab='security';render();
+    if(confirm('Session closed. Share the summary on WhatsApp now?'))App.share(text);},
+  newSession(){
+    const oid=val('sOrigin')||S.session.originId,d=val('sDate')||todayISO();
+    if(S.session.status==='open'&&!confirm('Start a new session? The current one stays in history.'))return;
+    S.sessions.push(S.session);
+    const sid='s-'+d+'-'+oid+'-'+Date.now().toString(36).slice(-3);
+    S.session={id:sid,date:d,originId:oid,start:'18:00',end:'21:00',status:'open',checkins:{}};
+    // carry each vehicle's preferred route as tonight's default plan
+    S.vehicles.filter(v=>v.type!=='personal'&&v.condition!=='Needs repair').forEach(v=>S.assignments.push({sessionId:sid,vehicleId:v.id,routeId:v.routeId}));
+    ui.result=null;ui.geo=null;ui.lastReport=null;ui.reportVeh='';save();toast('New session started at '+origin(oid).short);render();},
+  addGift(){const a=Number(val('gAmt'));if(!val('gName')||!(a>0))return toast('Name and a positive amount are required.');
+    S.gifts.push({id:uid('g'),date:todayISO(),name:val('gName'),type:val('gType'),category:val('gCat'),amount:a,method:val('gMethod'),note:val('gNote')});save();toast('Contribution recorded. Thank you!');render();},
+  delGift(id){if(confirm('Remove this entry?')){S.gifts=S.gifts.filter(g=>g.id!==id);save();render();}},
+  setTarget(){const t=Number(val('gTarget'));if(t>0){S.target=t;save();render();}},
+  hereFor(oid){if(!navigator.geolocation)return toast('Location not available.');navigator.geolocation.getCurrentPosition(p=>{document.getElementById('lat-'+oid).value=p.coords.latitude.toFixed(6);document.getElementById('lng-'+oid).value=p.coords.longitude.toFixed(6);toast('Location filled — tap Save settings.');},e=>toast(e.message),{enableHighAccuracy:true});},
+  saveSettings(){S.origins.forEach(o=>{const la=parseFloat(val('lat-'+o.id)),ln=parseFloat(val('lng-'+o.id));if(!isNaN(la)&&!isNaN(ln)){o.lat=la;o.lng=ln;}});
+    const g=Number(val('geoR'));if(g>=50&&g<=5000)S.settings.geofence=g;S.settings.autoAllocate=val('autoA')==='1';save();toast('Settings saved.');render();},
+  exportData(){const blob=new Blob([JSON.stringify(S,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='koinonia-ride-'+todayISO()+'.json';a.click();},
+  importData(f){if(!f)return;const r=new FileReader();r.onload=()=>{try{const d=JSON.parse(r.result);if(!d.members||!d.session)throw 0;S=d;save();toast('Data imported.');render();}catch(e){toast('That file is not a Koinonia Ride export.');}};r.readAsText(f);},
+  reset(demo){if(!confirm(demo?'Replace everything with demo data?':'Clear members, vehicles, bookings and giving?'))return;
+    if(demo)S=seed();else{const s=seed();S={...s,members:[],vehicles:[],assignments:[],offers:[],bookings:[],reports:[],gifts:[],me:'',session:{...s.session,checkins:{}}};}
+    Object.assign(ui,{result:null,geo:null,tonightArea:'',tonightAddr:'',lastReport:null,reportVeh:''});save();render();}
+};
+window.App=App;
+
+/* empty-state guard: views need at least one member */
+const _render=render;
+render=function(){if(!S.members.length&&!['members','settings','vehicles','giving'].includes(ui.tab)){ui.tab='members';toast('Register a member to get started.');}_render();};
+render();
+})();
+</script>
+</body>
+</html>
